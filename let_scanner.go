@@ -7,66 +7,79 @@ import (
 	"unicode"
 )
 
-type person struct {
-	name string
-	age  int
-}
-
 var counter int
 var mySlice []byte
 
-const LETTER int = 0
-const DIGIT int = 1
-const UNKNOWN int = 99
+type Token struct {
+	tokenType  rune
+	tokenValue string
+}
 
-const INT_LIT int = 10
-const IDENT int = 11
-const ADD_OP int = 21
-const SUB_OP int = 22
-const MULT_OP int = 23
-const DIV_OP int = 24
-const LEFT_PAREN int = 25
-const RIGHT_PAREN int = 26
+var tokenQueue []Token
 
-//const EOF int = -1
+const LETTER rune = 0
+const DIGIT rune = 1
+const UNKNOWN rune = 99
 
-var charClass int
+const INTEGER rune = 13
+const ID_STMT rune = 12
+const IN_STMT rune = 10
+const LET_STMT rune = 11
+const THEN_STMT rune = 21
+const IF_STMT rune = 22
+const IS_ZERO rune = 23
+const MINUS rune = 24
+const LEFT_PAREN rune = 25
+const RIGHT_PAREN rune = 26
+const EQU_OP rune = 27
+const COMMA rune = 28
+const ELSE_STMT rune = 29
+
+var charClass rune
 var lexeme string
 
 var nextChar byte
 var token int
-var nextToken int
+var nextToken rune
 var turnOff bool
 
 func Scanner() {
-	data, err := ioutil.ReadFile("/home/cameron/Downloads/front.in")
+
+	var filename string
+	fmt.Print("Enter file: ")
+	fmt.Scanln(&filename)
+	fmt.Println()
+
+	data, err := ioutil.ReadFile(filename)
+	//data, err := ioutil.ReadFile("/home/cameron/let_lang_proj/front2.in")
 	if err == io.EOF {
 		fmt.Println("Reading file finished...")
 		return
 	}
 
-	fmt.Println(person{"Bob", 20})
+	fmt.Println(string(data))
+
+	tokenQueue = []Token{}
 
 	mySlice = data[:]
-	My_getChar()
+	my_getChar()
 	for !turnOff {
-		Lex()
+		lex()
 	}
 
+	for _, v := range tokenQueue {
+		fmt.Println("tok: ", v)
+	}
+	fmt.Println()
+
 }
 
-func newPerson(name string) *person {
-	p := person{name: name}
-	//p.age = 42
-	return &p
-}
-
-func My_addChar() {
+func my_addChar() {
 	tmpString := string(nextChar)
 	lexeme += tmpString
 }
 
-func My_getChar() {
+func my_getChar() {
 	nextChar = mySlice[counter]
 
 	if unicode.IsLetter(rune(nextChar)) {
@@ -81,43 +94,62 @@ func My_getChar() {
 	counter++
 }
 
-func GetNonBlank() {
+func getNonBlank() {
 	for unicode.IsSpace(rune(nextChar)) {
-		My_getChar()
+		my_getChar()
 	}
 }
 
-func Lex() {
+func lex() {
 	lexeme = " "
-	GetNonBlank()
+	getNonBlank()
 	switch charClass {
 	case LETTER:
-		My_addChar()
-		My_getChar()
+		my_addChar()
+		my_getChar()
 		for charClass == LETTER || charClass == DIGIT {
-			My_addChar()
-			My_getChar()
+			my_addChar()
+			my_getChar()
 		}
-		nextToken = IDENT
+		nextToken = ID_STMT
 	case DIGIT:
-		My_addChar()
-		My_getChar()
+		my_addChar()
+		my_getChar()
 		for charClass == DIGIT {
-			My_addChar()
-			My_getChar()
+			my_addChar()
+			my_getChar()
 		}
-		nextToken = INT_LIT
+		nextToken = INTEGER
 	case UNKNOWN:
 		Lookup(nextChar)
-		My_getChar()
+		// LOOK UP: ( ) , =,
+		my_getChar()
 
 	}
 
-	fmt.Println("Next token is: ", nextToken, ", Next lexeme is: ", string(lexeme))
+	switch lexeme {
+	case " let":
+		nextToken = LET_STMT
+	case " in":
+		nextToken = IN_STMT
+	case " iszero":
+		nextToken = IS_ZERO
+	case " if":
+		nextToken = IF_STMT
+	case " then":
+		nextToken = THEN_STMT
+	case " else":
+		nextToken = ELSE_STMT
+	case " minus":
+		nextToken = MINUS
+	}
+
+	// fmt.Println("Next token is:", nextToken, ", Next lexeme is:", lexeme)
+
+	tokenQueue = append(tokenQueue, Token{nextToken, lexeme[1:]})
 
 	if counter == len(mySlice) {
 		turnOff = true
-		fmt.Println("Next token is:  -1 , Next lexeme is:   EOF")
 	}
 
 }
@@ -125,22 +157,16 @@ func Lex() {
 func Lookup(nextChar byte) {
 	switch nextChar {
 	case '(':
-		My_addChar()
+		my_addChar()
 		nextToken = LEFT_PAREN
 	case ')':
-		My_addChar()
+		my_addChar()
 		nextToken = RIGHT_PAREN
-	case '+':
-		My_addChar()
-		nextToken = ADD_OP
-	case '-':
-		My_addChar()
-		nextToken = SUB_OP
-	case '*':
-		My_addChar()
-		nextToken = MULT_OP
-	case '/':
-		My_addChar()
-		nextToken = DIV_OP
+	case ',':
+		my_addChar()
+		nextToken = COMMA
+	case '=':
+		my_addChar()
+		nextToken = EQU_OP
 	}
 }
